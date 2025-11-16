@@ -1,3 +1,5 @@
+
+
 import { PieceShape } from './types';
 
 export const GRID_WIDTH = 8;
@@ -64,15 +66,18 @@ const PIECE_SHAPES: { [key: string]: { shape: PieceShape; color: string } } = {
   Z1: { shape: [[1, 1, 0], [0, 1, 1]], color: 'red' },
   Z2: { shape: [[0, 1], [1, 1], [1, 0]], color: 'red' },
   // Pentominoes and other complex shapes
-  PLUS: { shape: [[0, 1, 0], [1, 1, 1], [0, 1, 0]], color: 'purple' },
   U_SHAPE: { shape: [[1, 0, 1], [1, 1, 1]], color: 'teal' },
   P_SHAPE: { shape: [[1, 1], [1, 1], [1, 0]], color: 'pink' },
-  F_SHAPE: { shape: [[0, 1, 1], [1, 1, 0], [0, 1, 0]], color: 'green' }, // Asymmetrical
-  W_SHAPE: { shape: [[1, 0, 0], [1, 1, 0], [0, 1, 1]], color: 'red' },
   Y_SHAPE: { shape: [[1, 0], [1, 1], [1, 0], [1, 0]], color: 'orange' },
   CORNER_SM: { shape: [[1, 1], [1, 0]], color: 'cyan' },
   I5V: { shape: [[1], [1], [1], [1], [1]], color: 'blue' },
   I5H: { shape: [[1, 1, 1, 1, 1]], color: 'blue' },
+  // Novas Formas
+  C_SHAPE: { shape: [[1, 1], [1, 0], [1, 1]], color: 'teal' },
+  STAIR_SHAPE: { shape: [[0, 1], [1, 1]], color: 'red' },
+  BLOCK_2X3: { shape: [[1, 1, 1], [1, 1, 1]], color: 'purple' },
+  BIG_L_SHAPE: { shape: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], color: 'green' },
+  DIAGONAL_3_SHAPE: { shape: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], color: 'pink' },
 };
 
-export const PIECES = Object.values(PIECE_SHAPES);
+export const PIECES = Object.entries(PIECE_SHAPES).map(([name, piece]) => ({ name, ...piece }));

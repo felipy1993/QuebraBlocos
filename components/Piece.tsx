@@ -41,6 +41,8 @@ const Piece: React.FC<PieceProps> = ({ piece, onDragStart, onRotate, isHidden })
 
   return (
     <div
+      title={piece.name}
+      data-piece-name={piece.name}
       className={`flex-1 flex flex-col items-center justify-between p-1 rounded-lg min-h-[90px] ${isHidden ? 'invisible' : ''}`}
     >
       <div

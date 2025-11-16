@@ -175,6 +175,7 @@ const App: React.FC = () => {
         const pieceInfo = PIECES[Math.floor(Math.random() * PIECES.length)];
         const piece: PieceData = {
             id: Date.now() + Math.random(),
+            name: pieceInfo.name,
             shape: pieceInfo.shape,
             color: pieceInfo.color,
             width: pieceInfo.shape[0].length,

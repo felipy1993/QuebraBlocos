@@ -3,6 +3,7 @@ export type GridState = ({ color: string; isBomb?: boolean } | null)[][];
 
 export interface PieceData {
   id: number;
+  name: string;
   shape: PieceShape;
   color: string;
   width: number;
