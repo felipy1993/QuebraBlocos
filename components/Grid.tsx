@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { GridState, PieceData, AnimationState, ActivePowerUp } from '../types';
 import { GRID_WIDTH, GRID_HEIGHT, COLORS } from '../constants';
@@ -10,7 +9,7 @@ interface GridProps {
   animationState: AnimationState;
   onGridClick: (r: number, c: number) => void;
   activePowerUp: ActivePowerUp;
-  dropPosition: { r: number; c: number } | null;
+  dropPosition: { r: number; c: number; isValid: boolean } | null;
 }
 
 const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState, onGridClick, activePowerUp, dropPosition }) => {
@@ -55,6 +54,9 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
         {grid.map((rowArr, r) =>
           rowArr.map((cell, c) => {
             let isGhost = false;
+            let isGhostValid = false;
+            let isCenterOfGhost = false;
+
             if (draggedPiece && dropPosition && !cell) {
                 const relativeRow = r - dropPosition.r;
                 const relativeCol = c - dropPosition.c;
@@ -62,6 +64,10 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
                     relativeCol >= 0 && relativeCol < draggedPiece.width &&
                     draggedPiece.shape[relativeRow][relativeCol]) {
                     isGhost = true;
+                    isGhostValid = dropPosition.isValid;
+                    isCenterOfGhost = 
+                        relativeRow === Math.floor(draggedPiece.height / 2) && 
+                        relativeCol === Math.floor(draggedPiece.width / 2);
                 }
             }
 
@@ -82,6 +88,9 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
                 cellClasses = `${COLORS[cell].main} border-b-4 border-r-4 shadow-lg ${COLORS[cell].shadow}`;
             } else if (isGhost && draggedPiece) {
                 cellClasses = `${COLORS[draggedPiece.color].main} border-b-2 border-r-2 shadow-md ${COLORS[draggedPiece.color].shadow}`;
+                if (!isGhostValid) {
+                    cellClasses += ' opacity-50';
+                }
             } else if (isBombPreview) {
                 cellClasses = 'bg-red-500/40';
             } else {
@@ -92,8 +101,14 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
               <div
                 key={`${r}-${c}`}
                 onClick={() => onGridClick(r, c)}
-                className={`w-full aspect-square rounded-md transition-colors duration-100 ${cellClasses} ${animationClass}`}
-              />
+                className={`relative w-full aspect-square rounded-md transition-colors duration-100 ${cellClasses} ${animationClass}`}
+              >
+                {isGhost && !isGhostValid && isCenterOfGhost && (
+                    <div className="absolute inset-0 flex items-center justify-center text-3xl md:text-4xl text-white drop-shadow-lg pointer-events-none" style={{textShadow: '0 2px 4px rgba(0,0,0,0.7)'}}>
+                        🚫
+                    </div>
+                )}
+              </div>
             );
           })
         )}

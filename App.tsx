@@ -14,6 +14,7 @@ import PlayerModal from './components/PlayerModal';
 import PowerUps from './components/PowerUps';
 import ConfirmModal from './components/ConfirmModal';
 import StuckModal from './components/StuckModal';
+import TreasureChestModal from './components/TreasureChestModal';
 
 const createEmptyGrid = (): GridState => Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(null));
 
@@ -65,8 +66,10 @@ const App: React.FC = () => {
     const [showPlayerModal, setShowPlayerModal] = useState(false);
     const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
     const [activePowerUp, setActivePowerUp] = useState<ActivePowerUp>(null);
-    const [dropPosition, setDropPosition] = useState<{ r: number; c: number } | null>(null);
+    const [dropPosition, setDropPosition] = useState<{ r: number; c: number; isValid: boolean } | null>(null);
     const [isFullScreen, setIsFullScreen] = useState(!!document.fullscreenElement);
+    const [showTreasureChests, setShowTreasureChests] = useState(false);
+    const [nextChestThreshold, setNextChestThreshold] = useState(3000);
     
     const audioContextRef = useRef<AudioContext | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -317,13 +320,11 @@ const App: React.FC = () => {
             // Align the ghost piece so its center is at the cursor's grid cell
             const dropRow = cursorRow - Math.floor(piece.height / 2);
             const dropCol = cursorCol - Math.floor(piece.width / 2);
+            
+            const isValid = canPlace(grid, piece, dropRow, dropCol);
 
-            if (!dropPosition || dropPosition.r !== dropRow || dropPosition.c !== dropCol) {
-                if (canPlace(grid, piece, dropRow, dropCol)) {
-                    setDropPosition({ r: dropRow, c: dropCol });
-                } else {
-                    setDropPosition(null);
-                }
+            if (!dropPosition || dropPosition.r !== dropRow || dropPosition.c !== dropCol || dropPosition.isValid !== isValid) {
+                setDropPosition({ r: dropRow, c: dropCol, isValid: isValid });
             }
         } else {
             setDropPosition(null);
@@ -338,7 +339,7 @@ const App: React.FC = () => {
     };
 
     const handleDragEnd = useCallback(() => {
-        if (draggedPiece && dropPosition) {
+        if (draggedPiece && dropPosition && dropPosition.isValid) {
             handleDropPiece(dropPosition.r, dropPosition.c);
         }
         setDraggedPiece(null);
@@ -441,6 +442,8 @@ const App: React.FC = () => {
         setCombo(0);
         setAnimationState(null);
         setActivePowerUp(null);
+        setNextChestThreshold(3000);
+        setShowTreasureChests(false);
     }, [generateNewPieces]);
     
     const handlePlayerSet = useCallback((name: string) => {
@@ -508,6 +511,45 @@ const App: React.FC = () => {
         setIsStuck(false);
         setGameOver(true);
     };
+
+    const handleRewardSelection = (reward: { type: 'coins'; amount: number } | { type: 'board_clear' }) => {
+        setShowTreasureChests(false);
+
+        if (reward.type === 'coins') {
+            playSound('levelUp');
+            setCoins(c => c + reward.amount);
+        } else if (reward.type === 'board_clear') {
+            playSound('bomb');
+            triggerHapticFeedback([100, 50, 100, 50, 100]);
+            const cellsToClear: {r: number, c: number}[] = [];
+            let clearedCount = 0;
+
+            grid.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    if (cell) {
+                        cellsToClear.push({ r, c });
+                        clearedCount++;
+                    }
+                });
+            });
+            
+            if (clearedCount > 0) {
+                 setScore(prev => {
+                    const newScore = prev + (clearedCount * POINTS_PER_BLOCK * 2); // Bonus points
+                    const coinsEarned = Math.floor(newScore / POINTS_PER_COIN) - Math.floor(prev / POINTS_PER_COIN);
+                    if (coinsEarned > 0) {
+                        playSound('coin');
+                        setCoins(c => c + coinsEarned);
+                    }
+                    return newScore;
+                });
+                addXp(clearedCount * XP_PER_BLOCK * 2); // Bonus XP
+            }
+
+            setAnimationState({ type: 'bomb', cells: cellsToClear });
+        }
+    };
+
 
     useEffect(() => {
         const onFullScreenChange = () => {
@@ -599,6 +641,13 @@ const App: React.FC = () => {
         }
     }, [gameOver, level]);
 
+     useEffect(() => {
+        if (!animationState && !gameOver && !isStuck && score >= nextChestThreshold) {
+            setShowTreasureChests(true);
+            setNextChestThreshold(t => t + 3000);
+        }
+    }, [score, nextChestThreshold, animationState, gameOver, isStuck]);
+
     const mainClasses = `bg-gradient-to-br from-gray-900 to-slate-800 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] h-screen w-screen text-white flex flex-col items-center justify-between p-4 selection:bg-transparent touch-none ${activePowerUp === 'bomb' ? 'cursor-crosshair' : ''}`;
 
     return (
@@ -631,6 +680,8 @@ const App: React.FC = () => {
                     onEndGame={handleEndGameFromStuck}
                 />
             )}
+
+            {showTreasureChests && <TreasureChestModal onReward={handleRewardSelection} />}
 
             <div className="w-full max-w-md">
                 <Scoreboard 
