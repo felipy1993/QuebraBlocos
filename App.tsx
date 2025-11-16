@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridState, PieceData, DraggedPiece, AnimationState, PieceShape, ActivePowerUp } from './types';
 import { 
@@ -87,6 +88,7 @@ const App: React.FC = () => {
     const [isFullScreen, setIsFullScreen] = useState(!!document.fullscreenElement);
     const [showTreasureChests, setShowTreasureChests] = useState(false);
     const [nextChestThreshold, setNextChestThreshold] = useState(3000);
+    const [isInitialized, setIsInitialized] = useState(false);
     
     const audioContextRef = useRef<AudioContext | null>(null);
     const gridRef = useRef<HTMLDivElement>(null);
@@ -513,7 +515,14 @@ const App: React.FC = () => {
         }
     };
 
+    const clearSavedGameState = useCallback(() => {
+        if (currentPlayer) {
+            localStorage.removeItem(`quebraBlocosGameState_${currentPlayer}`);
+        }
+    }, [currentPlayer]);
+
     const restartGame = useCallback(() => {
+        clearSavedGameState();
         setGrid(createEmptyGrid());
         setScore(0);
         setGameOver(false);
@@ -524,7 +533,7 @@ const App: React.FC = () => {
         setActivePowerUp(null);
         setNextChestThreshold(3000);
         setShowTreasureChests(false);
-    }, [generateNewPieces]);
+    }, [generateNewPieces, clearSavedGameState]);
     
     const handlePlayerSet = useCallback((name: string) => {
         setCurrentPlayer(name);
@@ -541,11 +550,52 @@ const App: React.FC = () => {
         setXp(storedXp);
         setXpForNextLevel(Math.floor(XP_BASE_LEVEL * Math.pow(XP_LEVEL_MULTIPLIER, storedLevel - 1)));
 
+        const savedGameStateJSON = localStorage.getItem(`quebraBlocosGameState_${name}`);
+        let loadedGame = false;
+        if (savedGameStateJSON) {
+            try {
+                const savedGameState = JSON.parse(savedGameStateJSON);
+                if (savedGameState.grid && savedGameState.availablePieces && Array.isArray(savedGameState.availablePieces)) {
+                    setGrid(savedGameState.grid);
+                    setScore(savedGameState.score || 0);
+                    setCombo(savedGameState.combo || 0);
+                    setNextChestThreshold(savedGameState.nextChestThreshold || 3000);
+                    
+                    let pieces = savedGameState.availablePieces;
+                    if (pieces.length === 0) {
+                        pieces = [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
+                    }
+                    setAvailablePieces(pieces);
+
+                    if (checkGameOver(savedGameState.grid, pieces)) {
+                        setIsStuck(true);
+                    }
+                    loadedGame = true;
+                }
+            } catch (e) {
+                console.error("Failed to parse game state:", e);
+            }
+        }
+
+        if (!loadedGame) {
+            setGrid(createEmptyGrid());
+            setScore(0);
+            setGameOver(false);
+            setIsStuck(false);
+            generateNewPieces();
+            setCombo(0);
+            setAnimationState(null);
+            setActivePowerUp(null);
+            setNextChestThreshold(3000);
+            setShowTreasureChests(false);
+        }
+
         setShowPlayerModal(false);
-        restartGame();
-    }, [restartGame]);
+        setIsInitialized(true);
+    }, [generateNewPieces, checkGameOver]);
 
     const handleSwitchPlayer = () => {
+        setIsInitialized(false);
         setCurrentPlayer(null);
         localStorage.removeItem('quebraBlocosCurrentPlayer');
         setShowPlayerModal(true);
@@ -578,6 +628,7 @@ const App: React.FC = () => {
     };
     
     const handleEndGameFromStuck = () => {
+        clearSavedGameState();
         playSound('gameOver');
         triggerHapticFeedback([200, 50, 200]);
         setIsStuck(false);
@@ -646,7 +697,6 @@ const App: React.FC = () => {
         }
     };
 
-
     useEffect(() => {
         const onFullScreenChange = () => {
             setIsFullScreen(!!document.fullscreenElement);
@@ -671,8 +721,26 @@ const App: React.FC = () => {
             handlePlayerSet(storedPlayer);
         } else {
             setShowPlayerModal(true);
+            setIsInitialized(true);
         }
     }, [handlePlayerSet]);
+
+    useEffect(() => {
+        if (!isInitialized || !currentPlayer || gameOver || isStuck) {
+            return;
+        }
+
+        const gameState = {
+            grid,
+            score,
+            availablePieces,
+            combo,
+            nextChestThreshold,
+        };
+        if (score > 0 || grid.some(row => row.some(cell => cell !== null))) {
+            localStorage.setItem(`quebraBlocosGameState_${currentPlayer}`, JSON.stringify(gameState));
+        }
+    }, [grid, score, availablePieces, combo, nextChestThreshold, currentPlayer, gameOver, isStuck, isInitialized]);
     
     useEffect(() => {
       if (xp >= xpForNextLevel) {
@@ -740,6 +808,7 @@ const App: React.FC = () => {
     
      useEffect(() => {
         if (gameOver) {
+            clearSavedGameState();
             if (level > 1) {
                 const newLevel = level - 1;
                 setLevel(newLevel);
@@ -749,7 +818,7 @@ const App: React.FC = () => {
                 setXp(0);
             }
         }
-    }, [gameOver, level]);
+    }, [gameOver, level, clearSavedGameState]);
 
      useEffect(() => {
         if (!animationState && !gameOver && !isStuck && score >= nextChestThreshold) {
