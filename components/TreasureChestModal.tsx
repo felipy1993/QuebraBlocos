@@ -39,7 +39,7 @@ const TreasureChestModal: React.FC<TreasureChestModalProps> = ({ onReward }) => 
             if (isRare) {
                 potentialRewards.push({ type: 'board_clear' });
             } else {
-                potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 26) + 75 }); // 75-100
+                potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 226) + 75 }); // 75-300
             }
             
             return potentialRewards.sort(() => Math.random() - 0.5);
