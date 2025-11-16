@@ -53,12 +53,20 @@ const Piece: React.FC<PieceProps> = ({ piece, onDragStart, onRotate, isHidden })
             row.map((cell, c) => (
               <div
                 key={`${r}-${c}`}
-                className={`w-7 h-7 transition-transform duration-150 rounded-md ${
+                className={`relative w-7 h-7 transition-transform duration-150 rounded-md ${
                   cell
                     ? `${COLORS[piece.color].main} border-b-2 border-r-2 shadow-md ${COLORS[piece.color].shadow}`
                     : 'bg-transparent'
                 }`}
-              />
+              >
+                 {cell && piece.bonusBomb?.r === r && piece.bonusBomb?.c === c && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-3 h-3 bg-gray-800 rounded-full shadow-inner opacity-80 flex items-center justify-center">
+                            <div className="w-0.5 h-0.5 bg-red-500 rounded-full animate-ping"></div>
+                        </div>
+                    </div>
+                )}
+              </div>
             ))
           )}
         </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { COIN_COST_FOR_SHUFFLE } from '../constants';
 
@@ -14,7 +15,13 @@ const StuckModal: React.FC<StuckModalProps> = ({ coins, onShuffle, onEndGame }) 
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
       <div className="bg-gradient-to-b from-slate-700 to-slate-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-slate-600 animate-fade-in-up">
         <h2 className="text-3xl font-bold text-orange-400 mb-4">Sem Movimentos!</h2>
-        <p className="text-gray-300 mb-6">Você está preso! Use um poder para continuar ou termine o jogo.</p>
+        <p className="text-gray-300 mb-6">
+          Você está preso!
+          {!canShuffle 
+              ? " Você não tem moedas suficientes para embaralhar."
+              : " Use o embaralhamento para obter novas peças ou termine o jogo."
+          }
+        </p>
         <div className="space-y-4">
           <button
             onClick={onShuffle}

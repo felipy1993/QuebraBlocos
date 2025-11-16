@@ -1,5 +1,5 @@
 export type PieceShape = number[][];
-export type GridState = (string | null)[][];
+export type GridState = ({ color: string; isBomb?: boolean } | null)[][];
 
 export interface PieceData {
   id: number;
@@ -7,6 +7,7 @@ export interface PieceData {
   color: string;
   width: number;
   height: number;
+  bonusBomb?: { r: number; c: number };
 }
 
 export interface DraggedPiece {

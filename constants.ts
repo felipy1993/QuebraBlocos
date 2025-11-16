@@ -7,6 +7,7 @@ export const GRID_HEIGHT = 10;
 export const POINTS_PER_BLOCK = 5; // Points for each block placed
 export const POINTS_PER_LINE_CLEAR = 50; // Base points per line cleared (multiplied by combo)
 export const POINTS_PER_COIN = 500; // How many points to earn one coin
+export const POINTS_PER_BOMB_BLOCK = 10; // Extra points for blocks cleared by a bonus bomb
 
 // Power-up Costs
 export const COIN_COST_FOR_ROTATE = 10;
@@ -19,6 +20,9 @@ export const XP_PER_BLOCK = 1;
 export const XP_PER_LINE = 20;
 export const XP_BASE_LEVEL = 200;
 export const XP_LEVEL_MULTIPLIER = 1.3;
+
+// Game Mechanics
+export const BONUS_BOMB_CHANCE = 0.15; // 15% chance for a piece to have a bonus bomb
 
 
 export const COLORS: { [key: string]: { main: string; shadow: string } } = {

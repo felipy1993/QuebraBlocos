@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GridState, PieceData, DraggedPiece, AnimationState, PieceShape, ActivePowerUp } from './types';
 import { 
     GRID_WIDTH, GRID_HEIGHT, PIECES, POINTS_PER_COIN, COIN_COST_FOR_ROTATE, 
     COIN_COST_FOR_SHUFFLE, COIN_COST_FOR_BOMB, XP_PER_BLOCK, XP_PER_LINE, 
     XP_BASE_LEVEL, XP_LEVEL_MULTIPLIER, LEVEL_UP_COIN_BONUS, COLORS,
-    POINTS_PER_BLOCK, POINTS_PER_LINE_CLEAR
+    POINTS_PER_BLOCK, POINTS_PER_LINE_CLEAR, BONUS_BOMB_CHANCE, POINTS_PER_BOMB_BLOCK
 } from './constants';
 import Grid from './components/Grid';
 import Piece from './components/Piece';
@@ -28,6 +29,22 @@ const rotateMatrix = (matrix: PieceShape): PieceShape => {
         }
     }
     return newMatrix;
+};
+
+const getUniqueRotations = (shape: PieceShape): PieceShape[] => {
+    const uniqueShapes = new Set<string>();
+    const rotations: PieceShape[] = [];
+    let currentShape = shape;
+
+    for (let i = 0; i < 4; i++) {
+        const shapeString = JSON.stringify(currentShape);
+        if (!uniqueShapes.has(shapeString)) {
+            uniqueShapes.add(shapeString);
+            rotations.push(currentShape);
+        }
+        currentShape = rotateMatrix(currentShape);
+    }
+    return rotations;
 };
 
 const triggerHapticFeedback = (pattern: number | number[] = 30) => {
@@ -86,6 +103,7 @@ const App: React.FC = () => {
         const gainNode = audioContext.createGain();
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
+        let duration = 0.2;
 
         switch (type) {
             case 'place':
@@ -93,6 +111,7 @@ const App: React.FC = () => {
                 oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
+                duration = 0.2;
                 break;
             case 'clear':
                 oscillator.type = 'sawtooth';
@@ -100,12 +119,14 @@ const App: React.FC = () => {
                 oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.4);
                 gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.4);
+                duration = 0.4;
                 break;
             case 'rotate':
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(250, audioContext.currentTime);
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.1);
+                duration = 0.1;
                 break;
             case 'coin':
             case 'levelUp':
@@ -114,6 +135,7 @@ const App: React.FC = () => {
                 oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.2);
+                duration = 0.2;
                 break;
             case 'shuffle':
                  oscillator.type = 'sawtooth';
@@ -121,6 +143,7 @@ const App: React.FC = () => {
                  oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
                  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.3);
+                 duration = 0.3;
                 break;
              case 'bomb':
                 oscillator.type = 'sawtooth';
@@ -128,6 +151,7 @@ const App: React.FC = () => {
                 oscillator.frequency.linearRampToValueAtTime(40, audioContext.currentTime + 0.5);
                 gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5);
+                duration = 0.5;
                 break;
             case 'gameOver':
                 oscillator.type = 'sawtooth';
@@ -135,11 +159,12 @@ const App: React.FC = () => {
                 oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.8);
                 gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.8);
+                duration = 0.8;
                 break;
         }
 
         oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.8);
+        oscillator.stop(audioContext.currentTime + duration);
     }, [isMuted]);
 
     const addXp = useCallback((amount: number) => {
@@ -148,13 +173,29 @@ const App: React.FC = () => {
 
     const generateRandomPiece = useCallback((): PieceData => {
         const pieceInfo = PIECES[Math.floor(Math.random() * PIECES.length)];
-        return {
+        const piece: PieceData = {
             id: Date.now() + Math.random(),
             shape: pieceInfo.shape,
             color: pieceInfo.color,
             width: pieceInfo.shape[0].length,
             height: pieceInfo.shape.length,
         };
+
+        if (Math.random() < BONUS_BOMB_CHANCE) {
+            const possibleBombLocations: { r: number; c: number }[] = [];
+            piece.shape.forEach((row, r) => {
+                row.forEach((cell, c) => {
+                    if (cell) {
+                        possibleBombLocations.push({ r, c });
+                    }
+                });
+            });
+
+            if (possibleBombLocations.length > 0) {
+                piece.bonusBomb = possibleBombLocations[Math.floor(Math.random() * possibleBombLocations.length)];
+            }
+        }
+        return piece;
     }, []);
 
     const generateNewPieces = useCallback(() => {
@@ -179,17 +220,30 @@ const App: React.FC = () => {
 
     const checkGameOver = useCallback((currentGrid: GridState, pieces: PieceData[]): boolean => {
         if (pieces.length === 0) return false;
+        
         for (const piece of pieces) {
             if (!piece) continue;
-            for (let r = 0; r < GRID_HEIGHT; r++) {
-                for (let c = 0; c < GRID_WIDTH; c++) {
-                    if (canPlace(currentGrid, piece, r, c)) {
-                        return false; // Found a valid move
+
+            const allRotations = getUniqueRotations(piece.shape);
+
+            for (const rotatedShape of allRotations) {
+                const rotatedPieceData: PieceData = {
+                    ...piece,
+                    shape: rotatedShape,
+                    width: rotatedShape[0].length,
+                    height: rotatedShape.length,
+                };
+
+                for (let r = 0; r < GRID_HEIGHT; r++) {
+                    for (let c = 0; c < GRID_WIDTH; c++) {
+                        if (canPlace(currentGrid, rotatedPieceData, r, c)) {
+                            return false; // Found a valid move with a rotation
+                        }
                     }
                 }
             }
         }
-        return true; // No valid moves for any piece
+        return true; // No valid moves for any piece in any rotation
     }, [canPlace]);
 
     const getClearedLinesInfo = useCallback((currentGrid: GridState): { clearedCoords: { r: number; c: number }[], clearedLinesCount: number } => {
@@ -245,7 +299,8 @@ const App: React.FC = () => {
                     if (piece.shape[r][c]) {
                         const gridRow = row + r;
                         const gridCol = col + c;
-                        newGrid[gridRow][gridCol] = piece.color;
+                        const isBomb = piece.bonusBomb?.r === r && piece.bonusBomb?.c === c;
+                        newGrid[gridRow][gridCol] = { color: piece.color, isBomb: isBomb };
                         pieceScore += POINTS_PER_BLOCK;
                         placedCells.push({ r: gridRow, c: gridCol });
                     }
@@ -253,13 +308,50 @@ const App: React.FC = () => {
             }
             
             addXp(pieceScore * XP_PER_BLOCK);
+
+            let { clearedCoords, clearedLinesCount } = getClearedLinesInfo(newGrid);
+            
+            const triggeredBombLocations: { r: number; c: number }[] = [];
+            clearedCoords.forEach(({ r, c }) => {
+                if (newGrid[r][c]?.isBomb) {
+                    triggeredBombLocations.push({ r, c });
+                }
+            });
+
+            let bombExplosionScore = 0;
+            if (triggeredBombLocations.length > 0) {
+                playSound('bomb');
+                triggerHapticFeedback([80, 40, 80]);
+                const explosionCells = new Set<string>();
+
+                triggeredBombLocations.forEach(bombPos => {
+                    for (let i = -1; i <= 1; i++) {
+                        for (let j = -1; j <= 1; j++) {
+                            const explosionRow = bombPos.r + i;
+                            const explosionCol = bombPos.c + j;
+
+                            if (explosionRow >= 0 && explosionRow < GRID_HEIGHT && explosionCol >= 0 && explosionCol < GRID_WIDTH) {
+                                if (newGrid[explosionRow][explosionCol]) {
+                                    bombExplosionScore += POINTS_PER_BOMB_BLOCK;
+                                }
+                                explosionCells.add(`${explosionRow},${explosionCol}`);
+                            }
+                        }
+                    }
+                });
+                
+                const allCellsToClearSet = new Set([...clearedCoords.map(c => `${c.r},${c.c}`), ...explosionCells]);
+                clearedCoords = Array.from(allCellsToClearSet, s => {
+                    const [r, c] = s.split(',').map(Number);
+                    return { r, c };
+                });
+            }
+
             setGrid(newGrid);
 
-            const { clearedCoords, clearedLinesCount } = getClearedLinesInfo(newGrid);
-
             let lineScore = 0;
-            if (clearedLinesCount > 0) {
-                 playSound('clear');
+            if (clearedLinesCount > 0 || triggeredBombLocations.length > 0) {
+                 if (clearedLinesCount > 0) playSound('clear');
                  triggerHapticFeedback([100, 30, 100]);
                  const newCombo = combo + clearedLinesCount;
                  setCombo(newCombo);
@@ -272,7 +364,7 @@ const App: React.FC = () => {
             }
             
             setScore(prev => {
-                const newScore = prev + pieceScore + lineScore;
+                const newScore = prev + pieceScore + lineScore + bombExplosionScore;
                 const coinsEarned = Math.floor(newScore / POINTS_PER_COIN) - Math.floor(prev / POINTS_PER_COIN);
                 if (coinsEarned > 0) {
                     playSound('coin');
@@ -280,25 +372,12 @@ const App: React.FC = () => {
                 }
                 return newScore;
             });
+            addXp(bombExplosionScore * XP_PER_BLOCK);
             
             const newAvailablePieces = availablePieces.filter((_, i) => i !== index);
             setAvailablePieces(newAvailablePieces);
-
-            if (newAvailablePieces.length === 0) {
-                setTimeout(() => {
-                    const nextPieces = [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
-                    setAvailablePieces(nextPieces);
-                    if (checkGameOver(newGrid, nextPieces)) { 
-                       setIsStuck(true);
-                    }
-                }, clearedLinesCount > 0 ? 500 : 0);
-            } else {
-                 if (checkGameOver(newGrid, newAvailablePieces)) {
-                    setIsStuck(true);
-                }
-            }
         }
-    }, [draggedPiece, grid, canPlace, availablePieces, combo, generateRandomPiece, checkGameOver, getClearedLinesInfo, animationState, playSound, addXp]);
+    }, [draggedPiece, grid, canPlace, availablePieces, combo, getClearedLinesInfo, animationState, playSound, addXp]);
     
     const handleDragMove = useCallback((clientX: number, clientY: number) => {
         if (!draggedPiece) return;
@@ -496,20 +575,36 @@ const App: React.FC = () => {
     const cancelNewGame = () => {
         setShowNewGameConfirm(false);
     };
-
-    const handleUseShuffleFromStuck = () => {
-        playSound('shuffle');
-        setCoins(c => c - COIN_COST_FOR_SHUFFLE);
-        const nextPieces = [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
-        setAvailablePieces(nextPieces);
-        setIsStuck(false);
-    };
-
+    
     const handleEndGameFromStuck = () => {
         playSound('gameOver');
         triggerHapticFeedback([200, 50, 200]);
         setIsStuck(false);
         setGameOver(true);
+    };
+
+    const handleUseShuffleFromStuck = () => {
+        playSound('shuffle');
+        setCoins(c => c - COIN_COST_FOR_SHUFFLE);
+        
+        let nextPieces: PieceData[] = [];
+        let isStillStuck = true;
+        let attempts = 0;
+        
+        // Attempt to find a playable set of pieces, with a safety break
+        while(isStillStuck && attempts < 20) {
+            nextPieces = [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
+            isStillStuck = checkGameOver(grid, nextPieces);
+            attempts++;
+        }
+
+        if (isStillStuck) {
+            // Extremely rare case: couldn't find a valid set. End the game.
+            handleEndGameFromStuck();
+        } else {
+            setAvailablePieces(nextPieces);
+            setIsStuck(false);
+        }
     };
 
     const handleRewardSelection = (reward: { type: 'coins'; amount: number } | { type: 'board_clear' }) => {
@@ -591,27 +686,41 @@ const App: React.FC = () => {
     }, [xp, xpForNextLevel, level, playSound]);
 
     useEffect(() => {
-        if (animationState) {
-            const animationDuration = animationState.type === 'place' ? 200 : 400;
-            const timer = setTimeout(() => {
-                if (animationState.type !== 'place') {
-                    setGrid(currentGrid => {
-                        const newGrid = currentGrid.map(row => [...row]);
-                        animationState.cells.forEach(({ r, c }) => {
-                            newGrid[r][c] = null;
-                        });
-                        
-                        if (checkGameOver(newGrid, availablePieces)) {
-                           setIsStuck(true);
-                        }
-                        return newGrid;
-                    });
+        if (!animationState) return;
+
+        const animationDuration = animationState.type === 'place' ? 200 : 400;
+        const timer = setTimeout(() => {
+            const performEndTurnChecks = (finalGrid: GridState) => {
+                let piecesForCheck = availablePieces;
+                if (piecesForCheck.length === 0) {
+                    const newPieces = [generateRandomPiece(), generateRandomPiece(), generateRandomPiece()];
+                    setAvailablePieces(newPieces);
+                    if (checkGameOver(finalGrid, newPieces)) {
+                        setIsStuck(true);
+                    }
+                } else {
+                    if (checkGameOver(finalGrid, piecesForCheck)) {
+                        setIsStuck(true);
+                    }
                 }
-                setAnimationState(null);
-            }, animationDuration);
-            return () => clearTimeout(timer);
-        }
-    }, [animationState, availablePieces, checkGameOver]);
+            };
+
+            if (animationState.type !== 'place') {
+                const newGrid = grid.map(row => [...row]);
+                animationState.cells.forEach(({ r, c }) => {
+                    newGrid[r][c] = null;
+                });
+                setGrid(newGrid);
+                performEndTurnChecks(newGrid);
+            } else {
+                performEndTurnChecks(grid);
+            }
+
+            setAnimationState(null);
+        }, animationDuration);
+
+        return () => clearTimeout(timer);
+    }, [animationState, availablePieces, grid, checkGameOver, generateRandomPiece]);
 
     useEffect(() => {
         if (currentPlayer && score > highScore) {
@@ -783,6 +892,36 @@ const App: React.FC = () => {
                 }
                 .animate-pulse-glow {
                     animation: pulse-glow 1.2s ease-in-out infinite;
+                }
+                 @keyframes flash {
+                  0%, 100% { 
+                    transform: scale(1.0);
+                    opacity: 1;
+                  }
+                  50% { 
+                    transform: scale(1.1);
+                    opacity: 0.5;
+                    box-shadow: 0 0 20px #fff, 0 0 30px #0ff;
+                  }
+                }
+                .animate-flash {
+                  animation: flash 0.4s ease-out;
+                }
+                @keyframes pop-cell {
+                  50% {
+                    transform: scale(1.15);
+                  }
+                }
+                .animate-pop-cell {
+                  animation: pop-cell 0.2s ease-out;
+                }
+                @keyframes value-pop {
+                  50% {
+                    transform: scale(1.15);
+                  }
+                }
+                .animate-value-pop {
+                  animation: value-pop 0.3s ease-out;
                 }
              `}</style>
         </main>

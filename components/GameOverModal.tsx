@@ -47,28 +47,6 @@ const GameOverModal: React.FC<GameOverModalProps> = ({ score, highScore, onResta
         .animate-fade-in-up {
           animation: fade-in-up 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
-        @keyframes flash {
-          0%, 100% { 
-            transform: scale(1.0);
-            opacity: 1;
-          }
-          50% { 
-            transform: scale(1.1);
-            opacity: 0.5;
-            box-shadow: 0 0 20px #fff, 0 0 30px #0ff;
-          }
-        }
-        .animate-flash {
-          animation: flash 0.4s ease-out;
-        }
-        @keyframes pop-cell {
-          50% {
-            transform: scale(1.15);
-          }
-        }
-        .animate-pop-cell {
-          animation: pop-cell 0.2s ease-out;
-        }
       `}</style>
     </div>
   );

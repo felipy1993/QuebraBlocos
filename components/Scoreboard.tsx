@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 
 interface ScoreboardProps {
@@ -26,7 +27,8 @@ const CrownIcon: React.FC<{className?: string}> = ({className}) => (
 
 const CoinIcon: React.FC<{className?: string}> = ({className}) => (
      <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-amber-400 ${className}`} viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+        <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="2" fill="none" />
+        <text x="50%" y="65%" dominantBaseline="middle" textAnchor="middle" fontSize="9" fontWeight="bold" fill="currentColor">$</text>
     </svg>
 );
 
@@ -61,10 +63,74 @@ const NewGameIcon: React.FC = () => (
     </svg>
 );
 
+function usePrevious<T>(value: T): T | undefined {
+  const ref = React.useRef<T>();
+  React.useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
+
+const useCountUpAnimation = (targetValue: number, duration: number = 500) => {
+    const [currentValue, setCurrentValue] = React.useState(targetValue);
+    const prevValue = usePrevious(targetValue);
+    const frameRef = React.useRef<number>();
+
+    React.useEffect(() => {
+        const startValue = prevValue !== undefined ? prevValue : targetValue;
+        const endValue = targetValue;
+
+        if (startValue === endValue) {
+            setCurrentValue(endValue);
+            return;
+        }
+
+        let startTime: number | null = null;
+
+        const animate = (timestamp: number) => {
+            if (!startTime) startTime = timestamp;
+            const progress = timestamp - startTime;
+            const percentage = Math.min(progress / duration, 1);
+            
+            // Ease out cubic function
+            const easedPercentage = 1 - Math.pow(1 - percentage, 3);
+
+            const animatedValue = Math.floor(startValue + (endValue - startValue) * easedPercentage);
+            setCurrentValue(animatedValue);
+
+            if (progress < duration) {
+                frameRef.current = requestAnimationFrame(animate);
+            } else {
+                 setCurrentValue(endValue);
+            }
+        };
+
+        frameRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (frameRef.current) {
+                cancelAnimationFrame(frameRef.current);
+            }
+        };
+    }, [targetValue, prevValue, duration]);
+
+    return currentValue;
+};
+
 
 const Scoreboard: React.FC<ScoreboardProps> = ({ score, highScore, coins, level, xp, xpForNextLevel, combo, isMuted, onToggleMute, playerName, onSwitchPlayer, isFullScreen, onToggleFullScreen, onNewGame }) => {
     const [levelUp, setLevelUp] = useState(false);
     const prevLevel = usePrevious(level);
+
+    const [popScore, setPopScore] = useState(false);
+    const prevScore = usePrevious(score);
+
+    const [popCoins, setPopCoins] = useState(false);
+    const prevCoins = usePrevious(coins);
+
+    const animatedScore = useCountUpAnimation(score);
+    const animatedCoins = useCountUpAnimation(coins);
+
 
     useEffect(() => {
         if (prevLevel !== undefined && level > prevLevel) {
@@ -73,6 +139,22 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ score, highScore, coins, level,
             return () => clearTimeout(timer);
         }
     }, [level, prevLevel]);
+
+    useEffect(() => {
+        if (prevScore !== undefined && score !== prevScore) {
+            setPopScore(true);
+            const timer = setTimeout(() => setPopScore(false), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [score, prevScore]);
+
+    useEffect(() => {
+        if (prevCoins !== undefined && coins !== prevCoins) {
+            setPopCoins(true);
+            const timer = setTimeout(() => setPopCoins(false), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [coins, prevCoins]);
 
     const xpPercentage = Math.min((xp / xpForNextLevel) * 100, 100);
 
@@ -110,7 +192,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ score, highScore, coins, level,
                     <div className="flex justify-between items-baseline">
                         <div className="text-center">
                             <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Pontuação</div>
-                            <div className="text-xl font-bold">{score}</div>
+                            <div className={`text-xl font-bold ${popScore ? 'animate-value-pop' : ''}`}>{animatedScore}</div>
                         </div>
                         {combo > 1 && (
                             <div className="text-center animate-pop-in animate-pulse-glow">
@@ -132,19 +214,11 @@ const Scoreboard: React.FC<ScoreboardProps> = ({ score, highScore, coins, level,
 
                 <div className="text-center flex flex-col justify-center items-center">
                     <CoinIcon className="h-6 w-6" />
-                    <div className="text-lg font-bold text-amber-400">{coins}</div>
+                    <div className={`text-lg font-bold text-amber-400 ${popCoins ? 'animate-value-pop' : ''}`}>{animatedCoins}</div>
                 </div>
             </div>
         </div>
     );
 };
-
-function usePrevious<T>(value: T): T | undefined {
-  const ref = React.useRef<T>();
-  React.useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-}
 
 export default Scoreboard;

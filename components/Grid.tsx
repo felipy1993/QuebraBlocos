@@ -85,7 +85,7 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
             
             let cellClasses = '';
             if (cell) {
-                cellClasses = `${COLORS[cell].main} border-b-4 border-r-4 shadow-lg ${COLORS[cell].shadow}`;
+                cellClasses = `${COLORS[cell.color].main} border-b-4 border-r-4 shadow-lg ${COLORS[cell.color].shadow}`;
             } else if (isGhost && draggedPiece) {
                 cellClasses = `${COLORS[draggedPiece.color].main} border-b-2 border-r-2 shadow-md ${COLORS[draggedPiece.color].shadow}`;
                 if (!isGhostValid) {
@@ -103,6 +103,13 @@ const Grid: React.FC<GridProps> = ({ grid, gridRef, draggedPiece, animationState
                 onClick={() => onGridClick(r, c)}
                 className={`relative w-full aspect-square rounded-md transition-colors duration-100 ${cellClasses} ${animationClass}`}
               >
+                 {cell?.isBomb && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-3 h-3 md:w-4 md:h-4 bg-gray-800 rounded-full shadow-inner opacity-80 flex items-center justify-center">
+                            <div className="w-1 h-1 bg-red-500 rounded-full animate-ping"></div>
+                        </div>
+                    </div>
+                )}
                 {isGhost && !isGhostValid && isCenterOfGhost && (
                     <div className="absolute inset-0 flex items-center justify-center text-3xl md:text-4xl text-white drop-shadow-lg pointer-events-none" style={{textShadow: '0 2px 4px rgba(0,0,0,0.7)'}}>
                         🚫
