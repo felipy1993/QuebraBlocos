@@ -29,10 +29,10 @@ const TreasureChestModal: React.FC<TreasureChestModalProps> = ({ onReward }) => 
     useEffect(() => {
         const generateRewards = (): Reward[] => {
             const potentialRewards: Reward[] = [];
-            // Reward 1: small coins
-            potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 21) + 10 }); // 10-30
-            // Reward 2: medium coins
-            potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 31) + 40 }); // 40-70
+            // Reward 1: 50-100 coins
+            potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 51) + 50 });
+            // Reward 2: 100-150 coins
+            potentialRewards.push({ type: 'coins', amount: Math.floor(Math.random() * 51) + 100 });
 
             // Reward 3: Board clear (rare) or large coins
             const isRare = Math.random() < 0.15; // 15% chance
