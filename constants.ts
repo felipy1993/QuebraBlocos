@@ -78,6 +78,7 @@ const PIECE_SHAPES: { [key: string]: { shape: PieceShape; color: string } } = {
   BLOCK_2X3: { shape: [[1, 1, 1], [1, 1, 1]], color: 'purple' },
   BIG_L_SHAPE: { shape: [[1, 0, 0], [1, 0, 0], [1, 1, 1]], color: 'green' },
   DIAGONAL_3_SHAPE: { shape: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], color: 'pink' },
+  DIAGONAL_2_SHAPE: { shape: [[1, 0], [0, 1]], color: 'pink' },
 };
 
 export const PIECES = Object.entries(PIECE_SHAPES).map(([name, piece]) => ({ name, ...piece }));
