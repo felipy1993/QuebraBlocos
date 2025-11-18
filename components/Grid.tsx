@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
-import { GridState, PieceData, AnimationState, ActivePowerUp } from '../types';
-import { GRID_WIDTH, GRID_HEIGHT, COLORS } from '../constants';
+import { GridState, PieceData, AnimationState, ActivePowerUp } from '../types.ts';
+import { GRID_WIDTH, GRID_HEIGHT, COLORS } from '../constants.ts';
 
 interface GridProps {
   grid: GridState;

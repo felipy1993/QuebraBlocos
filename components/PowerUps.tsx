@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { COIN_COST_FOR_BOMB } from '../constants';
-import { AnimationState, ActivePowerUp, DraggedPiece } from '../types';
+import { COIN_COST_FOR_BOMB } from '../constants.ts';
+import { AnimationState, ActivePowerUp, DraggedPiece } from '../types.ts';
 
 interface PowerUpsProps {
     coins: number;

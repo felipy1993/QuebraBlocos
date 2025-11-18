@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { PieceData } from '../types';
-import { COLORS, COIN_COST_FOR_ROTATE } from '../constants';
+import { PieceData } from '../types.ts';
+import { COLORS, COIN_COST_FOR_ROTATE } from '../constants.ts';
 
 const CoinIcon: React.FC<{className?: string}> = ({className}) => (
      <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 text-amber-400 ${className}`} viewBox="0 0 20 20" fill="currentColor">

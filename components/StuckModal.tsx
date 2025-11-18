@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { COIN_COST_FOR_SHUFFLE } from '../constants';
+import { COIN_COST_FOR_SHUFFLE } from '../constants.ts';
 
 interface StuckModalProps {
   coins: number;

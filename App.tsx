@@ -1,22 +1,22 @@
 
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GridState, PieceData, DraggedPiece, AnimationState, PieceShape, ActivePowerUp } from './types';
+import { GridState, PieceData, DraggedPiece, AnimationState, PieceShape, ActivePowerUp } from './types.ts';
 import { 
     GRID_WIDTH, GRID_HEIGHT, PIECES, POINTS_PER_COIN, COIN_COST_FOR_ROTATE, 
     COIN_COST_FOR_SHUFFLE, COIN_COST_FOR_BOMB, XP_PER_BLOCK, XP_PER_LINE, 
     XP_BASE_LEVEL, XP_LEVEL_MULTIPLIER, LEVEL_UP_COIN_BONUS, COLORS,
     POINTS_PER_BLOCK, POINTS_PER_LINE_CLEAR, BONUS_BOMB_CHANCE, POINTS_PER_BOMB_BLOCK
-} from './constants';
-import Grid from './components/Grid';
-import Piece from './components/Piece';
-import Scoreboard from './components/Scoreboard';
-import GameOverModal from './components/GameOverModal';
-import PlayerModal from './components/PlayerModal';
-import PowerUps from './components/PowerUps';
-import ConfirmModal from './components/ConfirmModal';
-import StuckModal from './components/StuckModal';
-import TreasureChestModal from './components/TreasureChestModal';
+} from './constants.ts';
+import Grid from './components/Grid.tsx';
+import Piece from './components/Piece.tsx';
+import Scoreboard from './components/Scoreboard.tsx';
+import GameOverModal from './components/GameOverModal.tsx';
+import PlayerModal from './components/PlayerModal.tsx';
+import PowerUps from './components/PowerUps.tsx';
+import ConfirmModal from './components/ConfirmModal.tsx';
+import StuckModal from './components/StuckModal.tsx';
+import TreasureChestModal from './components/TreasureChestModal.tsx';
 
 const createEmptyGrid = (): GridState => Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(null));
 
